@@ -2,7 +2,10 @@
 
 export(dss_to_ncdf_init)
 export(dss_to_netcdf)
+export(dss_to_sqlite)
+export(dss_to_sqlite_init)
 export(dss_var_to_ncdf)
+export(dss_var_to_sqlite)
 export(read_dss_list)
 export(read_dss_variable)
 export(read_dss_variable_by_path_group)
