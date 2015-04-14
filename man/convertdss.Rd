@@ -3,8 +3,18 @@
 \name{convertdss}
 \alias{convertdss}
 \alias{convertdss-package}
-\title{convertdss.}
+\title{convertdss: A package for converting dss into other data formats}
 \description{
-convertdss.
+The convertdss package provides functionality to convert dss files into:
+NetCDF, SQLite.
+}
+\section{NetCDF}{
+
+About NetCDF conversion
+}
+
+\section{SQLite}{
+
+About SQLite conversion
 }
 

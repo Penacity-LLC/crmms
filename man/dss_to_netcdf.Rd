@@ -3,7 +3,7 @@
 \alias{dss_to_netcdf}
 \title{Convert dss to netcdf}
 \usage{
-dss_to_netcdf(dss, nc, variable_parts = "B")
+dss_to_netcdf(dss, nc, parts = NULL, variable_parts = "B")
 }
 \arguments{
 \item{dss}{a dss file handle, from opendss}
