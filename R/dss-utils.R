@@ -122,7 +122,7 @@ dss_time_to_posixct <- function(x){
 #' @note NOTE
 #' @author Cameron Bracken
 #' @export 
-separate_path_parts <- function (paths,variable_parts = 'B') 
+separate_path_parts <- function (paths,variable_parts = 'B', replace_spaces=TRUE) 
 {
     parts.df = data.frame(rbind(do.call(rbind, str_split(paths, 
         fixed("/")))[, 2:7]),stringsAsFactors=FALSE)
@@ -130,6 +130,8 @@ separate_path_parts <- function (paths,variable_parts = 'B')
     parts.df$PATH = paths
     parts = data.table(parts.df)
     idv = apply(as.matrix(parts[,variable_parts,with=F]),1,paste,collapse='_')
+    if(replace_spaces)
+        idv = gsub(' ','_',idv)
     parts[,id_var:=idv]
     return(parts)
 }

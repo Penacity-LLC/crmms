@@ -13,7 +13,7 @@ dss_to_ncdf_init(dss, datetimes, nc_file = "convertdss.nc",
                  corresponding to the exact times to set up in the nc file}
 }
 \value{
-An RNetCDF file handle
+An ncdf4 file handle
 }
 \description{
 Uses an open dss file. A time dimension is defined with a corresponding

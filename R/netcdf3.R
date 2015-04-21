@@ -15,51 +15,26 @@
 #'                  corresponding to the exact times to set up in the nc file
 #'                  
 #' 
-#' @return An ncdf4 file handle
+#' @return An RNetCDF file handle
 #' @author Cameron Bracken
 #' @export 
-dss_to_ncdf_init <- function(dss,datetimes,nc_file='convertdss.nc',overwrite=FALSE){
+dss_to_ncdf3_init <- function(dss,datetimes,nc_file='convertdss.nc',overwrite=TRUE){
 
-    if(file.exists(nc_file))
-        if(overwrite)
-            unlink(nc_file)
-        else
-            stop(sprintf('File %s already exists, set overwrite=TRUE to clobber it.',nc_file))
+    nc = create.nc(nc_file, clobber=overwrite, large=TRUE, share=FALSE, prefill=FALSE)
     
-    #--------------------------------------------------------------
-    # Make dimensions. Setting "dimnchar" to have a length of 12
-    # means that the maximum timestamp 
-    # length can be 12.  Longer names will be truncated to this.
-    # We don't need dimvars for this example.
-    #--------------------------------------------------------------
-    dim_nchar = ncdim_def("max_string_length", "", 1:nchar("0000-00-00 00-00-00 UTC"), create_dimvar=FALSE)
-    dim_time = ncdim_def("time_index",  units="", 1:length(datetimes), create_dimvar=FALSE)
-
-    #------------------------------------------------------------------------
-    # NOTE in the following call that units is set to the empty string (""),
-    # which suppresses creation of a units attribute, and the missing value
-    # is entirely omitted, which suppresses creation of the missing value att
-    #------------------------------------------------------------------------
-    var_time = ncvar_def("time_stamp", units="", list(dim_nchar, dim_time), prec='char')
-
-    # we definitely want netcdf version 4 here, version 3 has a default limit
-    # of ~8000 variables , which cant be changed without recompiling
-    nc = nc_create(nc_file, list(var_time), force_v4=TRUE)
-    
-    # write the actual values
-    ncvar_put(nc, var_time, format(datetimes, '%Y-%m-%d %H:%M:%S UTC'))
+    # Define a time dimension 
+    dim.def.nc(nc, "time", unlim=TRUE)
+    dim.def.nc(nc, "max_string_length", nchar("0000-00-00 00-00-00 UTC"))
+    var.def.nc(nc, "time", "NC_CHAR", c("max_string_length", "time"))
+    var.put.nc(nc, "time", format(datetimes, '%Y-%m-%d %H:%M:%S UTC'))
+    #utinvcal.nc("hours since 1900-01-01 00:00:00",format(vv[[1]]$data$datetime,'%Y-%m-%d %H-%M-%S'))
     
     ##  Put some global attributes
-    ncatt_put(nc, 0, "title", sprintf("Data from %s", basename(dss$getFilename())))
-    ncatt_put(nc, 0, "history", paste("Created: ", Sys.time()))
+    att.put.nc(nc, "NC_GLOBAL", "title", "NC_CHAR", sprintf("Data from %s", basename(dss$getFilename())))
+    att.put.nc(nc, "NC_GLOBAL", "history", "NC_CHAR", paste("Created: ", Sys.time()))
 
-    # ncdf4 writes adds some extra information when its closed and opened
-    # otherwise, we get an error when reading the time dimension
-    nc_close(nc)
-
-    invisible(NULL)
+    return(nc)
 }
- 
 
 #' Writes a dss variable to an existing netcdf file
 #' 
@@ -67,7 +42,7 @@ dss_to_ncdf_init <- function(dss,datetimes,nc_file='convertdss.nc',overwrite=FAL
 #' netcdf file
 #' 
 #' @param v a variable object returned by \code{\link{read_dss_variable}}
-#' @param nc A \code{\link[ncdf4]{ncdf4}} file handle set up by \code{\link{dss_to_ncdf_init}}
+#' @param nc A RNetCDF file handle set up by \code{\link{dss_to_ncdf_init}}
 #' @param nc_datetimes the datetimes from the time variable in the netcdf file
 #'                     this is for efficiency so the times do not have to be 
 #'                     read and converted for each new variable written.
@@ -75,16 +50,12 @@ dss_to_ncdf_init <- function(dss,datetimes,nc_file='convertdss.nc',overwrite=FAL
 #' @return TRUE if the write was successful, false otherwise
 #' @author Cameron Bracken
 #' @export 
-dss_var_to_ncdf <- function(v, nc_file, nc_datetimes=NULL){
+dss_var_to_ncdf3 <- function(v, nc, nc_datetimes=NULL){
     
-    nc = nc_open(nc_file,write=TRUE)
-
     # if the user does not supply nc datetimes of the variable, 
     # read them out of the nc file
     if(is.null(nc_datetimes))
-        nc_datetimes = ymd_hms(ncvar_get(nc, 'time_stamp'))
-
-    dim_time = ncdim_def("time_index",  units="", 1:length(nc_datetimes), create_dimvar=FALSE)
+        nc_datetimes = ymd_hms(var.get.nc(nc, 'time'))
 
     var_name = v$variable
     md = lapply(v$metadata,as.character)
@@ -107,11 +78,12 @@ dss_var_to_ncdf <- function(v, nc_file, nc_datetimes=NULL){
     written = FALSE
     if(all_match){
 
-        #define and write the variable
-        var_nc = ncvar_def(var_name, units="", dim=dim_time, missval=NA)
-        nc_new = ncvar_add(nc, var_nc)
-        ncvar_put(nc_new, var_nc, v$data$value)
+         # define the variable, with no data
+        var.def.nc(nc, var_name, "NC_DOUBLE", "time")
+        att.put.nc(nc, var_name, "missing_value", "NC_DOUBLE", -99999.9)
 
+        # we can write all the data from the index
+        var.put.nc(nc, var_name, v$data$value)
         written = TRUE
 
     }else if(init_offset){
@@ -124,14 +96,12 @@ dss_var_to_ncdf <- function(v, nc_file, nc_datetimes=NULL){
         runs_over = (ldss > length(nc_datetimes[init_index:lnc]))
 
         if(runs_over){
-            warning('DSS variable and NetCDF times do not match, skipping')
+            warning('DSS variable and NCDF times do not match, skipping')
         }else{
             all_match2 = all(dss_datetimes == nc_datetimes[init_index:(init_index + ldss - 1)])
-
-            var_nc = ncvar_def(var_name, units="", dim=dim_time, missval=NA)
-            nc_new = ncvar_add(nc, var_nc)
-            ncvar_put(nc_new, var_nc, v$data$value, start=init_index, count=length(v$data$value))
-
+            var.def.nc(nc, var_name, "NC_DOUBLE", "time")
+            att.put.nc(nc, var_name, "missing_value", "NC_DOUBLE", -99999.9)
+            var.put.nc(nc, var_name, v$data$value, start=init_index)
             written = TRUE
         }
     }
@@ -139,10 +109,8 @@ dss_var_to_ncdf <- function(v, nc_file, nc_datetimes=NULL){
     if(written){
         # add the metadata
         for(m in names(md))
-            ncatt_put(nc_new, var_name, m, as.character(md[[m]]))
-        nc_close(nc_new)
+            att.put.nc(nc, var_name, m, "NC_CHAR", as.character(md[[m]]))
     }
-    #nc_close(nc)
 
     return(written)
 
@@ -164,26 +132,16 @@ dss_var_to_ncdf <- function(v, nc_file, nc_datetimes=NULL){
 #' @author Cameron Bracken
 #' @seealso \code{\link[dssrip]{opendss}}, \code{\link{dss_to_ncdf_init}}
 #' @export 
-dss_to_netcdf <- function(dss, nc_file, parts=NULL, variable_parts=LETTERS[1:4]){
+dss_to_netcdf3 <- function(dss, nc, parts=NULL, variable_parts=LETTERS[1:4]){
 
-    nc = nc_open(nc_file)
-    nc_datetimes = ymd_hms(ncvar_get(nc, 'time_stamp'))
-    nc_close(nc)
+    nc_datetimes = ymd_hms(var.get.nc(nc, 'time'))
 
     if(is.null(parts))
         parts = separate_path_parts(getAllPaths(dss),variable_parts)
     dss_variables = unique(parts$id_var)
 
-    for(var in dss_variables){
-        message(var)
+    lapply(dss_variables, function(var)
+        dss_var_to_ncdf(read_dss_variable(var,dss,parts, variable_parts), nc, nc_datetimes))
 
-        dss_var = try({
-            read_dss_variable(var, dss, parts, variable_parts)
-        },silent = TRUE)
 
-        if(!('try-error' %in% class(dss_var)))
-            dss_var_to_ncdf(dss_var, nc_file, nc_datetimes)
-    }
 }
-
-print.NetCDF <- function(x)print.nc(x)

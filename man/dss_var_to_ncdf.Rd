@@ -8,7 +8,7 @@ dss_var_to_ncdf(v, nc, nc_datetimes = NULL)
 \arguments{
 \item{v}{a variable object returned by \code{\link{read_dss_variable}}}
 
-\item{nc}{A RNetCDF file handle set up by \code{\link{dss_to_ncdf_init}}}
+\item{nc}{A \code{\link[ncdf4]{ncdf4}} file handle set up by \code{\link{dss_to_ncdf_init}}}
 
 \item{nc_datetimes}{the datetimes from the time variable in the netcdf file
                     this is for efficiency so the times do not have to be

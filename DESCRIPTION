@@ -9,6 +9,7 @@ Depends:
     RSQLite,
     lubridate,
     data.table,
-    RNetCDF
+    RNetCDF,
+    ncdf4
 License: MIT
 LazyData: true
