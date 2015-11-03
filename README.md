@@ -3,14 +3,12 @@
 # Prerequisites 
 1. **R** - [http://cran.r-project.org/]()
 2. **Rtools** - [http://cran.r-project.org/bin/windows/Rtools/]() may not be necessary for you but good to have
-3. **RStudio** - [https://www.rstudio.com/ide/download/]()
+3. **R** - [https://www.rstudio.com/ide/download/]() or your favorite R interface
     - In the Rstudio options (Tools > Global Options), set the version of R to be 32-bit
    	- Open RStudio and install some necessary R packages (from within R): 
         `install.packages(c('devtools','lubridate','data.table','ggplot2'))`
     - dss-rip R package: 
         `devtools::install_github("dss-rip","eheisman",args="--no-multiarch")`
-    - dplyr R package: 
-        `devtools::install_github('dplyr')`
 4. **DSSVue** - From HEC - [http://www.hec.usace.army.mil/software/hec-dssvue/downloads.aspx]()
 
 _While DSS is 32 and 64 bit compatible, the interface to the DSS Java libraries in R only works with 32-bit R/DSS at this time. If you have issues, ensure you are using 32 bit R._
